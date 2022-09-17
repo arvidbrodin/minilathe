@@ -1,0 +1,70 @@
+
+# kinematics
+loadrt [KINS]KINEMATICS
+
+# motion controller
+loadrt [EMCMOT]EMCMOT servo_period_nsec=[EMCMOT]SERVO_PERIOD num_joints=[KINS]JOINTS
+
+loadrt hostmot2
+loadrt hm2_eth board_ip=10.10.10.10
+
+#loadrt lut5 names=estop-and3
+#setp estop-and3.function 0x80808080  # 3-input AND gate truth table
+loadrt lut5 names=estop-nor3
+loadrt sgda_power count=3
+loadrt estop_chain_out names=estop-chain
+
+
+addf hm2_7i96.0.read		servo-thread
+addf motion-command-handler	servo-thread
+addf motion-controller		servo-thread
+addf estop-nor3			servo-thread
+addf estop-chain		servo-thread
+addf sgda-power.0		servo-thread
+addf sgda-power.1		servo-thread
+addf sgda-power.2		servo-thread
+addf hm2_7i96.0.write		servo-thread
+
+
+setp estop-nor3.function 0x01010101  # 3-input NOR gate truth table
+setp sgda-power.0.power-on-delay 0.0
+setp sgda-power.1.power-on-delay 1.5
+setp sgda-power.2.power-on-delay 3.0
+setp estop-chain.restart-grace-time 15.0	# Wait 15 s between power cycles
+
+
+#net sgda0-alarm-in <= hm2_7i96.0.7i77.0.0.input-08
+#net sgda0-alarm-in => sgda-power.0.alarm-in
+net sgda0-alarm <= sgda-power.0.alarm-out
+net sgda0-alarm => estop-nor3.in-0
+net sgda0-power <= sgda-power.0.power-on
+net sgda0-power => hm2_7i96.0.7i77.0.0.output-08
+
+#net sgda1-alarm-in <= hm2_7i96.0.7i77.0.0.input-
+#net sgda1-alarm-in => sgda-power.1.alarm-in
+net sgda1-alarm <= sgda-power.1.alarm-out
+net sgda1-alarm => estop-nor3.in-1
+net sgda1-power <= sgda-power.1.power-on
+net sgda1-power => hm2_7i96.0.7i77.0.0.output-09
+
+#net sgda2-alarm-in <= hm2_7i96.0.7i77.0.0.input-02
+#net sgda2-alarm-in => sgda-power.2.alarm-in
+net sgda2-alarm <= sgda-power.2.alarm-out
+net sgda2-alarm => estop-nor3.in-2
+net sgda2-power <= sgda-power.2.power-on
+net sgda2-power => hm2_7i96.0.7i77.0.0.output-10
+
+net sgda2-ready <= sgda-power.2.ready
+net sgda2-ready => iocontrol.0.emc-enable-in	# Power is on and all servos are ready for use
+
+net estop-reset-ok-in <= estop-nor3.out
+net estop-reset-ok-in => estop-chain.estop-reset-ok-in
+net estop-reset-ok-out <= estop-chain.estop-reset-ok-out
+net estop-reset-ok-out => hm2_7i96.0.7i77.0.0.output-11
+
+# ESTOP status input
+net estop-off <= hm2_7i96.0.7i77.0.0.input-16
+net estop-off => estop-chain.estop-off
+net estop-off => sgda-power.0.power-request
+net estop-off => sgda-power.1.power-request
+net estop-off => sgda-power.2.power-request
