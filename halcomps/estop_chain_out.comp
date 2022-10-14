@@ -1,0 +1,36 @@
+component estop_chain_out "Handles LinuxCNC control of an estop chain relay. This is an alternative to estop-latch that 1) Assumes the switching between ESTOP and power on is controlled by hardware, and 2) Allows enforcing a minimum grace time between power cycles.";
+
+pin in bit estop-off = 0 "Set high to signal that hardware is out of estop. Connect to e.g. safety relay status output. (Most likely this would be connected to the same net as iocontrol.0.emc-enable-in.)";
+
+pin out bit estop-reset-ok-out = 1 "Goes high to signal that LinuxCNC is ready to leave estop. Connect to e.g. a relay in the HW estop chain.";
+
+pin in bit estop-reset-ok-in = 1 "Set low to deassert estop-reset-ok-out (or prevent it from going high in the first place). Typically fed by servo drive alarm signals or GUI estop button (through iocontrol.0.____). Leaving this unconnected prevents this component from being able to trigger an ESTOP.";
+
+pin in bit estop-reset-request = 1 "When high, enables estop-reset-ok-out to go high. Can be used by GUI to signal that the user wants to enable estop-reset (if connected to e.g. iocontrol.0.user-request-enable). If this is left unconnected, estop-reset-ok will be automatically asserted when estop-hold is not active (waiting restart-grace-time seconds since the last time estop-off went low).";
+
+pin in float restart-grace-time = 0.0 "Minimum time (seconds) after estop-off goes low until estop-reset-ok goes high. Use to enforce a minimum power cycle time.";
+
+variable float timer;
+variable int old_estop_off;
+
+function _;
+license "GPL";
+author "Arvid Brodin";
+;;
+
+
+FUNCTION(_)
+{
+	if (!estop_off && old_estop_off) {
+		// estop_off deactivated; entered ESTOP mode
+		timer = restart_grace_time;
+	}
+	old_estop_off = estop_off;
+
+	if (timer <= 0.0) {
+		estop_reset_ok_out = estop_reset_ok_in;
+	} else {
+		estop_reset_ok_out = 0;
+		timer -= fperiod;
+	}
+}

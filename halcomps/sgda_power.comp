@@ -1,0 +1,50 @@
+component sgda_power "Power control for Yaskawa SGDA SERVOPACKs";
+
+pin in bit power-request "Set high to request servo power on.";
+pin out bit power-on "Turns high power-on-delay milliseconds after power-request went high. NOT affected by alarm-in; create an ESTOP circuit to handle cutting power.";
+
+pin in bit alarm-in "Connect to servo ALM output";
+pin out bit alarm-out "Goes high when alarm-in is high if power-on is high and alarm-grace-time has passed since power-on went high.";
+
+pin in float power-on-delay "Time (in seconds) to wait after power-request goes high until power-on goes high (e.g. for staggered power on).";
+pin in float alarm-grace-time = 2.0 "Time (in seconds) to ignore alarm signals after power-on goes high.";
+
+pin out bit ready "Goes high when alarm-grace-time expires. NOT affected by alarm-in; create an ESTOP circuit to handle cutting power.";
+
+variable float alarm_grace_timer;
+variable float power_on_timer;
+
+function _;
+license "GPL";
+author "Arvid Brodin";
+;;
+
+
+FUNCTION(_)
+{
+	if (power_on && (alarm_grace_timer >= alarm_grace_time)) {
+		alarm_out = alarm_in;
+	} else {
+		alarm_out = 0;
+	}
+	if (power_on && (alarm_grace_timer < alarm_grace_time)) {
+		alarm_grace_timer += fperiod;
+		if (alarm_grace_timer >= alarm_grace_time) {
+			ready = 1;
+		}
+	}
+
+	if (power_request && (power_on_timer <= power_on_delay)) {
+		power_on_timer += fperiod;
+		if (power_on_timer >= power_on_delay) {
+			power_on = 1;
+			alarm_grace_timer = 0.0;
+		}
+	}
+
+	if (!power_request) {
+		power_on = 0;
+		power_on_timer = 0.0;
+		ready = 0;
+	}
+}
