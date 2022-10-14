@@ -1,0 +1,38 @@
+
+IO cable info
+=============
+
+Analog reference (gray)
+
+1CN # - name --- cable color
+
+1 - TREF --- br-wh
+2 - SG-T --- br
+3 - VREF --- bl-wh
+4 - SG-V --- bl
+
+------------------------------------------------------
+IO signals (blue)
+
+1CN # - name --- cable color --- connector cable color
+
+13 - +24VIN --- br    --- red
+14 - /S-ON  --- br-wh --- violet(?)
+16 - P-OT   --- gn-wh --- white
+17 - N-OT   --- gn    --- green
+     (NC)   --- bl    --- blue
+     (NC)   --- bl-wh --- black
+34 - ALM    --- or    --- orange
+35 - ALM-SG --- or-wh --- yellow
+
+------------------------------------------------------
+Encoder signals (white)
+
+ IDX --- br
+/IDX --- br-wh
+/QB  --- bl
+ QB  --- bl-wh
+ GND --- gn
+ GND --- gn-wh
+/QA  --- or
+ QA  --- or-wh
